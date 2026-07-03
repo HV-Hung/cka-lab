@@ -11,7 +11,8 @@ It is not part of the Kubernetes control plane. It is a client application that 
 | kubectl architecture | Completed |
 | kubeconfig concepts | Completed |
 | TLS, PKI, and authentication basics | Completed |
-| API resources and discovery | Not started |
+| API resources and discovery | Completed |
+| OpenAPI schema and kubectl explain | Next |
 | Imperative commands | Not started |
 | Output formatting | Not started |
 | Labels and annotations | Not started |
@@ -24,6 +25,9 @@ It is not part of the Kubernetes control plane. It is a client application that 
 - [Architecture](./architecture.md)
 - [Kubeconfig](./kubeconfig.md)
 - [TLS, PKI, and Authentication](./tls-pki-authentication.md)
+- [API Resources and Discovery](./api-resources-and-discovery.md)
+
+> Note: Some linked documents may still need to be created as the learning notes are polished topic by topic.
 
 ## Core Mental Model
 
@@ -42,6 +46,8 @@ authenticate
   ↓
 authorize with RBAC
   ↓
+discover API groups, versions, and resources
+  ↓
 API Server reads or updates cluster state
   ↓
 kubectl formats the response
@@ -57,11 +63,15 @@ kubectl formats the response
 - The user section authenticates the caller using a client certificate, token, or dynamic credential plugin.
 - Authentication answers: who are you?
 - Authorization answers: what are you allowed to do?
+- Kubernetes exposes cluster state through API resources.
+- API Groups organize related resources and allow independent versioning.
+- The Core API Group uses `apiVersion: v1`; named groups use values such as `apps/v1` and `batch/v1`.
+- `kubectl` uses the Discovery API to learn available groups, versions, resources, verbs, scope, and short names.
 
 ## Next Topics
 
-1. Kubernetes API resources and API groups
+1. OpenAPI schema and `kubectl explain`
 2. `kubectl api-resources`
-3. `kubectl explain`
+3. `kubectl api-versions`
 4. Imperative resource creation
 5. Output formatting for the CKA exam
