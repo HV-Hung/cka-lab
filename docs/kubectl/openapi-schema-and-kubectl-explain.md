@@ -4,142 +4,78 @@
 
 Kubernetes is a self-describing API system.
 
-The API Server does not only store Kubernetes objects. It also exposes metadata that helps clients understand what the cluster supports and how API objects are structured.
-
-The previous topic covered the Discovery API:
+The API Server exposes two important kinds of metadata:
 
 ```text
-Discovery API answers:
-What API resources exist?
+Discovery API
+  answers: what resources exist?
+
+OpenAPI schema
+  answers: what does each resource look like?
 ```
 
-This topic adds the next layer:
+`kubectl explain` uses the OpenAPI schema published by the API Server to show fields, nested structure, types, and descriptions for Kubernetes resources.
 
-```text
-OpenAPI schema answers:
-What does each resource look like?
-```
-
-`kubectl explain` uses the OpenAPI schema exposed by the API Server to show resource fields, nested structures, field types, and descriptions.
-
-The goal is not to memorize YAML. The goal is to understand how Kubernetes objects are modeled.
+The goal is not to memorize YAML. The goal is to understand the Kubernetes object model.
 
 ---
 
-## Mental Model
+## Core Mental Model
 
 ```text
 kubectl
   ↓
-API Discovery
+Discovery API
   ↓
-learn groups, versions, resources, verbs, scope, shortNames
+resolve resource: group, version, name, scope, verbs
   ↓
 OpenAPI schema
   ↓
-learn fields, types, nesting, descriptions, validation hints
+resolve fields: nesting, types, descriptions, validation hints
 ```
 
-Discovery and OpenAPI solve different problems.
+Summary:
 
 ```text
-Discovery API
-  = resource catalog
-
-OpenAPI schema
-  = object blueprint
+Discovery = resource catalog
+OpenAPI  = object blueprint
+Objects  = actual desired state
 ```
 
 Example:
 
 ```text
-Discovery API tells kubectl:
+Discovery tells kubectl:
 - deployments exists
 - group = apps
 - version = v1
 - namespaced = true
-- verbs = get, list, create, update, patch, delete, watch
+- supported verbs include get, list, create, patch, update, delete, watch
 
-OpenAPI schema tells kubectl:
+OpenAPI tells kubectl:
 - Deployment has metadata
 - Deployment has spec
-- spec has replicas
-- spec has selector
-- spec has template
-- template has pod spec
+- spec has replicas, selector, and template
+- template has a Pod spec
 - containers is a list
 - container.image is a string
 ```
 
 ---
 
-## Discovery API vs OpenAPI Schema vs Objects
+## Why OpenAPI Exists
 
-These are three separate concepts.
+Without server-published schemas, every client would need to hardcode Kubernetes API structures.
 
-```text
-Discovery API
-  tells what API resources exist
+That would affect:
 
-OpenAPI schema
-  tells what fields those resources support
-
-Kubernetes objects
-  represent the current desired state stored through the API Server
-```
-
-Example:
-
-```text
-GET /apis/apps/v1
-```
-
-This tells the client that `deployments` exists in `apps/v1`.
-
-OpenAPI tells the client that a Deployment contains fields such as:
-
-```text
-Deployment.spec.replicas
-Deployment.spec.selector
-Deployment.spec.template
-Deployment.spec.template.spec.containers
-```
-
-A real object stores actual desired state:
-
-```text
-Deployment named nginx
-replicas = 3
-image = nginx:1.27
-```
-
-A useful summary:
-
-```text
-Discovery = catalog
-OpenAPI  = blueprint
-Objects  = actual records
-```
-
----
-
-## Why Kubernetes Uses OpenAPI
-
-Kubernetes could have been designed in several ways.
-
-### Option A: Hardcode all schemas in every client
-
-In this design, every client would need built-in knowledge of every Kubernetes field.
-
-```text
-kubectl
-client-go
-Terraform Kubernetes provider
-Argo CD
-Lens
-IDE plugins
-custom clients
-```
+- `kubectl`
+- client-go
+- Terraform Kubernetes provider
+- Argo CD
+- Lens
+- IDE plugins
+- custom clients
 
 Problem:
 
@@ -147,69 +83,45 @@ Problem:
 API changes
   ↓
 every client must update its own schema knowledge
-```
-
-This causes version drift and makes the ecosystem harder to maintain.
-
-### Option B: Invent a Kubernetes-specific schema format
-
-Kubernetes could have created a custom schema system.
-
-Problem:
-
-```text
-New Kubernetes-specific schema format
   ↓
-new parsers
-new generators
-new documentation tools
-new IDE support
-new validation libraries
+version drift and maintenance cost
 ```
 
-That would create unnecessary ecosystem cost.
+Kubernetes avoids this by making the API Server publish schemas.
 
-### Option C: Publish OpenAPI schema from the API Server
-
-Kubernetes chose a standard API description format.
-
-Benefits:
-
-- clients can learn schemas from the server
-- tools can generate documentation
-- clients can be generated from API definitions
-- IDEs and YAML tooling can use schema information
-- CRDs can expose their own schemas
-- the API Server remains the source of truth
-
-The design principle is:
+Design principle:
 
 ```text
 The server describes itself.
 ```
 
-Clients should discover capabilities and schemas from the API Server instead of embedding assumptions.
+Benefits:
+
+- clients learn schemas from the server
+- tools can generate documentation
+- IDEs can provide YAML assistance
+- validation can use the same API contract
+- CRDs can expose their own schemas
+- clients do not need built-in knowledge of every resource
 
 ---
 
-## Why OpenAPI Matters for CRDs
+## OpenAPI and CRDs
 
-CustomResourceDefinitions extend Kubernetes without modifying the API Server source code.
+CustomResourceDefinitions extend Kubernetes without modifying API Server source code.
 
-When a CRD is installed, the API Server reads the CRD object and registers a new API resource.
-
-A CRD defines:
+A CRD defines both the resource identity and its schema:
 
 ```text
 group
-versions
+version
 kind
 plural name
 scope
 schema
 ```
 
-The schema is provided inside the CRD itself:
+Simplified CRD schema example:
 
 ```yaml
 spec:
@@ -230,72 +142,58 @@ spec:
                 type: integer
 ```
 
-After the CRD is accepted, the API Server updates:
+After the CRD is accepted:
 
 ```text
-Discovery API
-  adds the new resource
-
-OpenAPI schema
-  adds the new resource schema
+API Server
+  ↓
+registers the new resource
+  ↓
+publishes it through Discovery API
+  ↓
+publishes its structure through OpenAPI schema
 ```
 
-Then a command such as this can work without updating the `kubectl` binary:
+That is why this can work without updating the `kubectl` binary:
 
 ```bash
 kubectl explain database.spec
-```
-
-Conceptual flow:
-
-```text
-Install CRD
-  ↓
-API Server reads CRD schema
-  ↓
-API Server publishes resource through Discovery API
-  ↓
-API Server publishes structure through OpenAPI schema
-  ↓
-kubectl can get, apply, and explain the custom resource
 ```
 
 Important separation:
 
 ```text
 API Server
-  registers API, validates objects, stores objects, publishes schema
+  defines API availability, schema, validation, and persistence
 
 Controller
-  watches objects, interprets desired state, reconciles actual state, updates status
+  watches objects, reconciles actual state, and updates status
 ```
 
-The controller is responsible for behavior, not API definition.
+The controller implements behavior. It does not define the API schema.
 
 ---
 
 ## Validation Responsibility
 
-The API Server is responsible for enforcing the API contract before objects are persisted.
+The API Server validates objects before storing them.
 
-Example CRD schema:
+Example schema:
 
 ```yaml
-spec:
-  storage:
-    type: integer
+storage:
+  type: integer
 ```
 
 Invalid object:
 
 ```yaml
-spec:
-  storage: "100"
+storage: "100"
 ```
 
-The value is a string, not an integer.
+The value is a string, not an integer. The API Server should reject it before persistence.
 
-The API Server should reject this object because validation must happen before persistence.
+Request flow:
 
 ```text
 request
@@ -315,35 +213,19 @@ etcd persistence
 
 Why not `kubectl`?
 
-Because not every client is `kubectl`.
-
-Objects may be created by:
-
-- kubectl
-- Helm
-- Argo CD
-- Terraform
-- client-go
-- Python clients
-- Java clients
-- controllers
-- direct REST calls
-
-The server must never trust the client.
+Because not every client is `kubectl`. Objects may come from Helm, Argo CD, Terraform, client libraries, controllers, or direct REST calls.
 
 Why not the controller?
 
-Because by the time the controller sees the object, the object has already been persisted and may already have been observed by other components.
-
-Invalid data should not enter cluster state.
+Because the controller sees objects after they have already been accepted and stored. Invalid data should not enter cluster state.
 
 ---
 
 ## What kubectl explain Does
 
-`kubectl explain` is not just a help command.
+`kubectl explain` is an interactive API reference for the live cluster.
 
-A better mental model is:
+Mental model:
 
 ```text
 kubectl explain
@@ -355,38 +237,36 @@ walks the OpenAPI schema tree
 renders field documentation for humans
 ```
 
-It is an interactive API reference for the live cluster.
-
-Instead of searching online for YAML examples, the user can ask the cluster itself:
+It helps answer:
 
 ```text
 What fields does this resource support?
 Where is this field located?
-What is the type of this field?
+What type is this field?
 What does this field mean?
 ```
 
-This is especially useful because:
+It is useful because:
 
 - the schema matches the cluster version
 - CRDs can be explained
 - internet access is not required
-- it helps avoid YAML nesting mistakes
-- it is useful during the CKA exam
+- YAML nesting mistakes are easier to avoid
+- it is allowed and useful during the CKA exam
 
 ---
 
-## Schema Traversal Mental Model
+## Schema Traversal
 
-`kubectl explain` walks a schema tree.
+`kubectl explain` walks a field path through the schema tree.
 
-Example path:
+Example:
 
 ```text
 Deployment.spec.template.spec.containers
 ```
 
-This path means:
+Traversal:
 
 ```text
 Deployment
@@ -400,9 +280,7 @@ spec
 containers
 ```
 
-Every dot means one level deeper in the object schema.
-
-The path is not random. It reflects real Kubernetes API object composition.
+This path reflects real Kubernetes API composition:
 
 ```text
 Deployment
@@ -416,13 +294,15 @@ PodSpec
 Container
 ```
 
+Every dot means one level deeper in the object schema.
+
 ---
 
 ## Why Deployment Uses spec.template.spec.containers
 
 A Deployment does not own containers directly.
 
-The runtime ownership chain is:
+Runtime ownership chain:
 
 ```text
 Deployment
@@ -434,9 +314,7 @@ Pod
 Container
 ```
 
-The API schema reflects that separation.
-
-A Deployment contains:
+Deployment separates two concerns:
 
 ```text
 spec.replicas
@@ -446,11 +324,11 @@ spec.template
   = what each future Pod should look like
 ```
 
-A Deployment does not describe one Pod. It describes a desired set of replaceable Pods created from a template.
+The template is a Pod blueprint, not a real Pod object.
 
-That is why the field is called `template`, not `pod`.
+This is why the field is called `template`, not `pod`.
 
-If the API were designed like this:
+If the API used this shape:
 
 ```yaml
 spec:
@@ -459,9 +337,9 @@ spec:
       containers:
 ```
 
-it would misleadingly suggest that the Deployment owns one specific Pod.
+it would imply that the Deployment owns one specific Pod.
 
-The real design is:
+The real structure is:
 
 ```yaml
 spec:
@@ -471,41 +349,11 @@ spec:
       containers:
 ```
 
-This separates two concerns:
+Changing `replicas` scales the workload without changing the Pod blueprint.
 
-```text
-replicas
-  = number of desired Pods
+Changing `template` creates a new Pod blueprint and drives rollout behavior through ReplicaSets.
 
-template
-  = blueprint used to create each Pod
-```
-
-Changing `replicas` scales the workload without changing the Pod template.
-
-Changing `template` creates a new desired Pod blueprint, which drives rollout behavior through ReplicaSets.
-
----
-
-## Why Kubernetes Uses a Template
-
-A Pod has many fields:
-
-- containers
-- initContainers
-- volumes
-- affinity
-- tolerations
-- nodeSelector
-- securityContext
-- serviceAccountName
-- imagePullSecrets
-- DNS policy
-- restart policy
-
-If Deployment copied all Pod fields directly into `Deployment.spec`, the API would duplicate the Pod schema.
-
-Instead, Kubernetes composes existing object structures:
+Kubernetes reuses existing object structures instead of duplicating Pod fields directly under Deployment:
 
 ```text
 DeploymentSpec
@@ -513,90 +361,66 @@ DeploymentSpec
     contains PodSpec
 ```
 
-This follows a common software engineering principle:
-
-```text
-composition over duplication
-```
-
-The long YAML path exists because Kubernetes is reusing the Pod object model inside workload controllers.
+This is composition over duplication.
 
 ---
 
 ## Key Takeaways
 
-- Discovery API tells clients what resources exist.
-- OpenAPI schema tells clients what fields those resources contain.
-- Kubernetes objects represent actual desired state.
-- `kubectl explain` uses OpenAPI schema from the API Server.
-- The API Server is the source of truth for resource schemas.
+- Discovery tells clients what resources exist.
+- OpenAPI tells clients what fields those resources contain.
+- Objects store actual desired state.
+- `kubectl explain` reads schema information from the API Server.
 - CRDs provide their schema inside the CRD object.
-- Controllers implement behavior; they do not define API schemas.
-- The API Server validates objects before storing them.
-- `kubectl explain` should be understood as schema-tree traversal.
-- `Deployment.spec.template` is a Pod blueprint, not a real Pod object.
-- `replicas` answers how many Pods are desired.
-- `template` answers what each Pod should look like.
+- API Server validates objects before storing them.
+- Controllers reconcile behavior; they do not define schemas.
+- `kubectl explain` is best understood as schema-tree traversal.
+- `Deployment.spec.template` is a blueprint for future Pods.
 
 ---
 
 ## Common Mistakes
 
-### Mistake 1: Thinking kubectl explain reads the Kubernetes website
+### Thinking kubectl explain reads the Kubernetes website
 
-Wrong model:
-
-```text
-kubectl explain
-  ↓
-Kubernetes documentation website
-```
-
-Correct model:
+Wrong:
 
 ```text
-kubectl explain
-  ↓
-API Server metadata
-  ↓
-OpenAPI schema
+kubectl explain → Kubernetes documentation website
 ```
 
-### Mistake 2: Confusing Discovery and OpenAPI
+Correct:
 
-Discovery does not explain fields.
+```text
+kubectl explain → API Server metadata → OpenAPI schema
+```
 
-Discovery tells clients that a resource exists.
+### Confusing Discovery and OpenAPI
 
-OpenAPI explains the structure of that resource.
+```text
+Discovery: what resources exist?
+OpenAPI: what does each resource look like?
+```
 
-### Mistake 3: Thinking the controller defines the schema
+### Thinking the controller defines the schema
 
-The controller reconciles objects after they are accepted.
+The schema comes from built-in API definitions or from the CRD object. The controller reconciles accepted objects.
 
-The schema comes from built-in API definitions or from the CRD object.
+### Thinking Deployment directly owns containers
 
-### Mistake 4: Thinking Deployment directly owns containers
-
-A Deployment owns ReplicaSets.
-
-ReplicaSets own Pods.
-
-Pods own containers.
+Deployment owns ReplicaSets. ReplicaSets own Pods. Pods own containers.
 
 Deployment only contains a Pod template.
 
-### Mistake 5: Thinking template means current Pods
+### Thinking template means current Pods
 
-The template is a blueprint for future Pods.
-
-Existing Pods do not mutate just because the template changes. New Pods are created from the new template during rollout.
+The template is a blueprint for future Pods. Existing Pods do not mutate just because the template changes.
 
 ---
 
 ## Current Learning Status
 
-This topic is partially completed.
+Status: **In progress**
 
 Completed:
 
@@ -610,9 +434,9 @@ Completed:
 - why Deployment uses `spec.template.spec.containers`
 - why `template` is not called `pod`
 
-Still pending:
+Pending:
 
-- practical `kubectl explain` command usage
+- practical `kubectl explain` usage
 - `--recursive`
 - field navigation exercises
 - CRD explain behavior
@@ -627,9 +451,9 @@ Still pending:
 
 - Use `kubectl explain` when you forget where a field belongs.
 - Think in field paths, not copied YAML snippets.
-- For workload controllers, remember that container fields usually live under `spec.template.spec.containers`.
+- For workload controllers, container fields usually live under `spec.template.spec.containers`.
 - Use `kubectl explain` to avoid indentation and nesting mistakes.
-- Learn the object model deeply enough that `kubectl explain` becomes a confirmation tool, not your only source of knowledge.
+- Learn the object model so `kubectl explain` becomes a confirmation tool, not your only source of knowledge.
 
 ---
 
