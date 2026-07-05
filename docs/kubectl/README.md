@@ -12,7 +12,7 @@ It is not part of the Kubernetes control plane. It is a client application that 
 | kubeconfig concepts | Completed |
 | TLS, PKI, and authentication basics | Completed |
 | API resources and discovery | Completed |
-| OpenAPI schema and kubectl explain | Next |
+| OpenAPI schema and kubectl explain | In progress |
 | Imperative commands | Not started |
 | Output formatting | Not started |
 | Labels and annotations | Not started |
@@ -26,6 +26,7 @@ It is not part of the Kubernetes control plane. It is a client application that 
 - [Kubeconfig](./kubeconfig.md)
 - [TLS, PKI, and Authentication](./tls-pki-authentication.md)
 - [API Resources and Discovery](./api-resources-and-discovery.md)
+- [OpenAPI Schema and kubectl explain](./openapi-schema-and-kubectl-explain.md)
 
 > Note: Some linked documents may still need to be created as the learning notes are polished topic by topic.
 
@@ -48,6 +49,8 @@ authorize with RBAC
   ↓
 discover API groups, versions, and resources
   ↓
+read OpenAPI schema when field-level structure is needed
+  ↓
 API Server reads or updates cluster state
   ↓
 kubectl formats the response
@@ -67,10 +70,12 @@ kubectl formats the response
 - API Groups organize related resources and allow independent versioning.
 - The Core API Group uses `apiVersion: v1`; named groups use values such as `apps/v1` and `batch/v1`.
 - `kubectl` uses the Discovery API to learn available groups, versions, resources, verbs, scope, and short names.
+- `kubectl explain` uses OpenAPI schema from the API Server to understand resource fields and nested object structure.
+- Discovery answers what resources exist; OpenAPI answers what those resources look like.
 
 ## Next Topics
 
-1. OpenAPI schema and `kubectl explain`
+1. Continue `kubectl explain` practical usage
 2. `kubectl api-resources`
 3. `kubectl api-versions`
 4. Imperative resource creation
