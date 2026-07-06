@@ -12,7 +12,7 @@ It is not part of the Kubernetes control plane. It is a client application that 
 | kubeconfig concepts | Completed |
 | TLS, PKI, and authentication basics | Completed |
 | API resources and discovery | Completed |
-| OpenAPI schema and kubectl explain | Concept and hands-on completed; breakage/troubleshooting pending |
+| OpenAPI schema and kubectl explain | Concept, hands-on, and troubleshooting completed; CRD/check sheet pending |
 | Imperative commands | Not started |
 | Output formatting | Not started |
 | Labels and annotations | Not started |
@@ -73,12 +73,12 @@ kubectl formats the response
 - `kubectl explain` uses OpenAPI schema from the API Server to understand resource fields and nested object structure.
 - Discovery answers what resources exist; OpenAPI answers what those resources look like.
 - Practical `kubectl explain` field navigation has been completed on the AKS cluster.
-- The next step is intentional breakage and troubleshooting using wrong field paths, wrong types, and schema validation.
+- Troubleshooting with wrong field paths, wrong nesting, and schema validation has been completed.
+- The next step is exploring `kubectl explain` behavior for CRDs, then creating the final cheat sheet.
 
 ## Next Topics
 
-1. Intentionally break `kubectl explain` field paths
-2. Troubleshoot wrong YAML nesting using `kubectl explain`
-3. Compare client-side understanding with API Server validation
-4. Explore `kubectl explain` behavior for CRDs
-5. Final `kubectl explain` cheat sheet
+1. Explore `kubectl explain` behavior for CRDs
+2. Compare strong CRD schema vs weak CRD schema
+3. Final `kubectl explain` cheat sheet
+4. Continue to the next kubectl topic
