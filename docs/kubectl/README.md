@@ -12,8 +12,8 @@ It is not part of the Kubernetes control plane. It is a client application that 
 | kubeconfig concepts | Completed |
 | TLS, PKI, and authentication basics | Completed |
 | API resources and discovery | Completed |
-| OpenAPI schema and kubectl explain | Concept, hands-on, and troubleshooting completed; CRD/check sheet pending |
-| Imperative commands | Not started |
+| OpenAPI schema and kubectl explain | Concept, hands-on, and troubleshooting completed; final cheat sheet pending |
+| Imperative commands | In progress: namespace, deployment, service, configmap, and secret labs completed |
 | Output formatting | Not started |
 | Labels and annotations | Not started |
 | Edit, apply, and patch | Not started |
@@ -74,11 +74,13 @@ kubectl formats the response
 - Discovery answers what resources exist; OpenAPI answers what those resources look like.
 - Practical `kubectl explain` field navigation has been completed on the AKS cluster.
 - Troubleshooting with wrong field paths, wrong nesting, and schema validation has been completed.
-- The next step is exploring `kubectl explain` behavior for CRDs, then creating the final cheat sheet.
+- Imperative command labs have covered namespace, deployment, service, ConfigMap, and Secret creation.
+- Secret practice included generic Secrets, file/literal input, Base64 decoding, env consumption, volume mounts, TLS Secrets, docker-registry Secrets, troubleshooting missing keys, and patching Deployments to consume Secrets.
 
 ## Next Topics
 
-1. Explore `kubectl explain` behavior for CRDs
-2. Compare strong CRD schema vs weak CRD schema
-3. Final `kubectl explain` cheat sheet
-4. Continue to the next kubectl topic
+1. `kubectl run`
+2. `kubectl create job`
+3. `kubectl create cronjob`
+4. Final imperative command notes
+5. Final `kubectl explain` cheat sheet
