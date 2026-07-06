@@ -12,7 +12,7 @@ It is not part of the Kubernetes control plane. It is a client application that 
 | kubeconfig concepts | Completed |
 | TLS, PKI, and authentication basics | Completed |
 | API resources and discovery | Completed |
-| OpenAPI schema and kubectl explain | In progress |
+| OpenAPI schema and kubectl explain | Concept complete; hands-on pending |
 | Imperative commands | Not started |
 | Output formatting | Not started |
 | Labels and annotations | Not started |
@@ -72,11 +72,13 @@ kubectl formats the response
 - `kubectl` uses the Discovery API to learn available groups, versions, resources, verbs, scope, and short names.
 - `kubectl explain` uses OpenAPI schema from the API Server to understand resource fields and nested object structure.
 - Discovery answers what resources exist; OpenAPI answers what those resources look like.
+- Practical `kubectl explain` usage is conceptually complete; the next step is hands-on practice on the AKS cluster.
 
 ## Next Topics
 
-1. Continue `kubectl explain` practical usage
-2. `kubectl api-resources`
-3. `kubectl api-versions`
-4. Imperative resource creation
-5. Output formatting for the CKA exam
+1. Hands-on `kubectl explain` field navigation
+2. Hands-on `kubectl explain --recursive`
+3. Compare `kubectl explain` with `kubectl api-resources` on a live cluster
+4. Explore `kubectl explain` behavior for CRDs
+5. Intentional breakage and troubleshooting
+6. Final `kubectl explain` cheat sheet
