@@ -298,6 +298,94 @@ Every dot means one level deeper in the object schema.
 
 ---
 
+## Why kubectl explain Preserves the Tree
+
+`kubectl explain` does not flatten all fields into one list because Kubernetes objects are not flat.
+
+The hierarchy reflects the actual API model:
+
+```text
+Container
+  belongs inside PodSpec
+
+PodSpec
+  belongs inside PodTemplateSpec
+
+PodTemplateSpec
+  belongs inside workload controllers such as Deployment, DaemonSet, StatefulSet, Job, and ReplicaSet
+```
+
+Preserving the tree has two benefits:
+
+```text
+Accuracy
+  The CLI output mirrors the real API structure.
+
+Usability
+  Users can inspect one field path instead of reading the whole schema.
+```
+
+This is why paths such as this are meaningful:
+
+```text
+Deployment.spec.template.spec.containers
+```
+
+They are not just YAML syntax. They represent nested API types.
+
+---
+
+## API Composition
+
+Kubernetes reuses common API structures instead of duplicating fields in every resource.
+
+Conceptual model:
+
+```text
+DeploymentSpec
+  contains PodTemplateSpec
+    contains PodSpec
+      contains []Container
+```
+
+Many workload resources eventually contain a Pod template:
+
+```text
+Deployment
+  ↓
+PodTemplateSpec
+
+DaemonSet
+  ↓
+PodTemplateSpec
+
+StatefulSet
+  ↓
+PodTemplateSpec
+
+Job
+  ↓
+PodTemplateSpec
+
+CronJob
+  ↓
+JobTemplateSpec
+  ↓
+PodTemplateSpec
+```
+
+This keeps the API consistent.
+
+If Kubernetes adds or improves a field in `PodSpec`, workload resources that embed `PodSpec` can reuse the same model instead of redefining Pod fields repeatedly.
+
+Design principle:
+
+```text
+composition over duplication
+```
+
+---
+
 ## Why Deployment Uses spec.template.spec.containers
 
 A Deployment does not own containers directly.
@@ -353,16 +441,6 @@ Changing `replicas` scales the workload without changing the Pod blueprint.
 
 Changing `template` creates a new Pod blueprint and drives rollout behavior through ReplicaSets.
 
-Kubernetes reuses existing object structures instead of duplicating Pod fields directly under Deployment:
-
-```text
-DeploymentSpec
-  contains PodTemplateSpec
-    contains PodSpec
-```
-
-This is composition over duplication.
-
 ---
 
 ## Key Takeaways
@@ -375,6 +453,7 @@ This is composition over duplication.
 - API Server validates objects before storing them.
 - Controllers reconcile behavior; they do not define schemas.
 - `kubectl explain` is best understood as schema-tree traversal.
+- The schema tree is preserved because it mirrors real API composition.
 - `Deployment.spec.template` is a blueprint for future Pods.
 
 ---
@@ -406,6 +485,10 @@ OpenAPI: what does each resource look like?
 
 The schema comes from built-in API definitions or from the CRD object. The controller reconciles accepted objects.
 
+### Thinking kubectl explain invents documentation
+
+`kubectl explain` renders schema information from the API Server. It does not create its own separate resource model.
+
 ### Thinking Deployment directly owns containers
 
 Deployment owns ReplicaSets. ReplicaSets own Pods. Pods own containers.
@@ -431,6 +514,8 @@ Completed:
 - API Server validation responsibility
 - `kubectl explain` mental model
 - schema traversal
+- why `kubectl explain` preserves the schema tree
+- API composition
 - why Deployment uses `spec.template.spec.containers`
 - why `template` is not called `pod`
 
