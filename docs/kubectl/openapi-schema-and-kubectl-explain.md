@@ -14,9 +14,9 @@ OpenAPI schema
   answers: what does each resource look like?
 ```
 
-`kubectl explain` uses the OpenAPI schema published by the API Server to show fields, nested structure, types, and descriptions for Kubernetes resources.
+`kubectl explain` uses schema information published by the API Server to show fields, nested structure, types, and descriptions for Kubernetes resources.
 
-The goal is not to memorize YAML. The goal is to understand the Kubernetes object model.
+The goal is not to memorize YAML. The goal is to understand the Kubernetes object model and use `kubectl explain` to confirm exact field paths.
 
 ---
 
@@ -256,7 +256,60 @@ It is useful because:
 
 ---
 
-## Schema Traversal
+## How kubectl explain Resolves Resources
+
+When running:
+
+```bash
+kubectl explain deploy.spec.template.spec.containers
+```
+
+`kubectl` first needs to resolve `deploy`.
+
+It uses Discovery API metadata to understand that:
+
+```text
+deploy
+  ↓
+deployments
+  ↓
+deployments.apps
+  ↓
+apps/v1 Deployment
+```
+
+After the resource is resolved, `kubectl` uses the OpenAPI schema to walk the field path:
+
+```text
+Deployment
+  ↓
+spec
+  ↓
+template
+  ↓
+spec
+  ↓
+containers
+```
+
+Resource aliases usually resolve to the same resource:
+
+```bash
+kubectl explain deploy
+kubectl explain deployment
+kubectl explain deployments
+kubectl explain deployments.apps
+```
+
+For learning and exam usage, prefer clear paths:
+
+```bash
+kubectl explain deployment.spec.template.spec.containers
+```
+
+---
+
+## Field Path Navigation
 
 `kubectl explain` walks a field path through the schema tree.
 
@@ -296,6 +349,43 @@ Container
 
 Every dot means one level deeper in the object schema.
 
+Practical workflow:
+
+```bash
+kubectl explain deployment
+kubectl explain deployment.spec
+kubectl explain deployment.spec.template
+kubectl explain deployment.spec.template.spec
+kubectl explain deployment.spec.template.spec.containers
+kubectl explain deployment.spec.template.spec.containers.image
+```
+
+This avoids guessing YAML nesting.
+
+Example mistake:
+
+```bash
+kubectl explain deployment.spec.restartPolicy
+```
+
+`restartPolicy` does not belong directly to `DeploymentSpec`.
+
+Correct path:
+
+```bash
+kubectl explain deployment.spec.template.spec.restartPolicy
+```
+
+Reason:
+
+```text
+Deployment
+└── spec                  # DeploymentSpec
+    └── template          # PodTemplateSpec
+        └── spec          # PodSpec
+            └── restartPolicy
+```
+
 ---
 
 ## Why kubectl explain Preserves the Tree
@@ -332,6 +422,57 @@ Deployment.spec.template.spec.containers
 ```
 
 They are not just YAML syntax. They represent nested API types.
+
+---
+
+## Why kubectl explain Resolves One Level at a Time
+
+`kubectl explain` does not search the entire schema for a field name and print the first match.
+
+It resolves the path one level at a time:
+
+```text
+Deployment
+  ↓
+spec
+  ↓
+template
+  ↓
+spec
+  ↓
+containers
+  ↓
+resources
+  ↓
+limits
+```
+
+This is important because many field names are reused across Kubernetes APIs.
+
+Examples:
+
+```text
+metadata.name
+metadata.labels
+spec.selector
+spec.template
+status.conditions
+```
+
+A field name only has meaning inside its parent object.
+
+For example, `selector` may exist in different resources with different meanings:
+
+```text
+Service.spec.selector
+Deployment.spec.selector
+NetworkPolicy.spec.podSelector
+PodDisruptionBudget.spec.selector
+```
+
+Searching globally for `selector` would be ambiguous.
+
+Path-based traversal is correct because Kubernetes APIs are hierarchical and composed from nested types.
 
 ---
 
@@ -443,18 +584,175 @@ Changing `template` creates a new Pod blueprint and drives rollout behavior thro
 
 ---
 
-## Key Takeaways
+## --recursive
 
-- Discovery tells clients what resources exist.
-- OpenAPI tells clients what fields those resources contain.
-- Objects store actual desired state.
-- `kubectl explain` reads schema information from the API Server.
-- CRDs provide their schema inside the CRD object.
-- API Server validates objects before storing them.
-- Controllers reconcile behavior; they do not define schemas.
-- `kubectl explain` is best understood as schema-tree traversal.
-- The schema tree is preserved because it mirrors real API composition.
-- `Deployment.spec.template` is a blueprint for future Pods.
+By default, `kubectl explain` shows the current node and its direct child fields.
+
+Example:
+
+```bash
+kubectl explain pod.spec
+```
+
+With `--recursive`, it prints the nested field tree below the selected path:
+
+```bash
+kubectl explain pod.spec --recursive
+```
+
+Mental model:
+
+```text
+without --recursive
+  show this node and direct children
+
+with --recursive
+  show this node and all nested descendants
+```
+
+Useful examples:
+
+```bash
+kubectl explain pod.spec --recursive | less
+kubectl explain deployment.spec.template.spec --recursive | less
+kubectl explain service.spec --recursive | less
+```
+
+Use `--recursive` when:
+
+- exploring a resource for the first time
+- looking for a field when the exact path is unknown
+- building mental memory of object structure
+
+Avoid overusing `--recursive` when:
+
+- solving a timed CKA task
+- the output becomes too large
+- the exact field path is already known
+- detailed descriptions are needed, because recursive output is less readable
+
+Best exam habit:
+
+```text
+Use --recursive to discover possible field names.
+Then use direct field paths to inspect details.
+```
+
+---
+
+## kubectl explain vs kubectl api-resources
+
+These commands answer different questions.
+
+`kubectl api-resources` answers:
+
+```text
+What API resources exist in this cluster?
+```
+
+It shows resource-level metadata:
+
+```text
+NAME          SHORTNAMES   APIVERSION   NAMESPACED   KIND
+deployments   deploy       apps/v1      true         Deployment
+pods          po           v1           true         Pod
+```
+
+It does not explain fields inside the resource.
+
+`kubectl explain` answers:
+
+```text
+What fields exist inside this resource?
+Where does this field belong?
+What does this field mean?
+```
+
+Example:
+
+```bash
+kubectl explain deployment.spec.template.spec.containers.resources.limits
+```
+
+Summary:
+
+```text
+kubectl api-resources = resource discovery
+kubectl explain       = schema navigation
+```
+
+Practical rule:
+
+```text
+Use api-resources when you do not know the resource name, API group, short name, or scope.
+Use explain when you know the resource and need to write correct YAML.
+```
+
+---
+
+## CRD Behavior with kubectl explain
+
+`kubectl explain` can work with CRDs because Kubernetes publishes CRD schemas through the API Server.
+
+Good CRD schema:
+
+```yaml
+spec:
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              replicas:
+                type: integer
+              image:
+                type: string
+              storage:
+                type: integer
+```
+
+This allows useful commands such as:
+
+```bash
+kubectl explain myresource.spec.image
+kubectl explain myresource.spec.replicas
+```
+
+Weak CRD schema:
+
+```yaml
+spec:
+  type: object
+```
+
+or schemas that preserve unknown fields too broadly may give poor `kubectl explain` output.
+
+Important point:
+
+```text
+If kubectl explain shows little useful detail for a CRD,
+the problem is usually the CRD schema,
+not the controller logic.
+```
+
+The controller implements behavior. The CRD schema defines the API structure that `kubectl explain` can display.
+
+---
+
+## Best Practices
+
+- Use `kubectl explain` to confirm exact field paths instead of guessing YAML indentation.
+- Start broad, then navigate deeper.
+- Think in object paths, not isolated field names.
+- Use `kubectl api-resources` when resource identity is unclear.
+- Use `kubectl explain` when field structure is unclear.
+- Use `--recursive` for exploration, then inspect specific paths directly.
+- For workload controllers, remember that container fields usually live under `spec.template.spec.containers`.
+- For CRDs, expect `kubectl explain` quality to depend on CRD schema quality.
 
 ---
 
@@ -481,6 +779,21 @@ Discovery: what resources exist?
 OpenAPI: what does each resource look like?
 ```
 
+### Thinking kubectl explain searches every field globally
+
+Wrong:
+
+```text
+Find any field named limits anywhere in the schema.
+```
+
+Correct:
+
+```text
+Resolve one path level at a time:
+Deployment → spec → template → spec → containers → resources → limits
+```
+
 ### Thinking the controller defines the schema
 
 The schema comes from built-in API definitions or from the CRD object. The controller reconciles accepted objects.
@@ -501,9 +814,84 @@ The template is a blueprint for future Pods. Existing Pods do not mutate just be
 
 ---
 
+## CKA Tips
+
+Use `kubectl explain` when you forget where a field belongs.
+
+High-value examples:
+
+```bash
+kubectl explain pod.spec.containers
+kubectl explain pod.spec.containers.resources
+kubectl explain pod.spec.containers.livenessProbe
+kubectl explain deployment.spec.strategy
+kubectl explain deployment.spec.template.spec.nodeSelector
+kubectl explain service.spec
+kubectl explain persistentvolumeclaim.spec
+```
+
+Memorize the main object model, not every field.
+
+Important paths:
+
+```text
+Deployment
+  spec
+    replicas
+    selector
+    template
+      metadata
+      spec
+        containers
+
+Pod
+  spec
+    containers
+    volumes
+    nodeSelector
+    tolerations
+    affinity
+
+Service
+  spec
+    selector
+    ports
+    type
+```
+
+Exam habit:
+
+```text
+1. Use api-resources if the resource name or API group is unclear.
+2. Use explain to find the correct field path.
+3. Write the YAML.
+4. Use kubectl apply --dry-run=server or kubectl apply to validate with the API Server.
+```
+
+---
+
+## Key Takeaways
+
+- Discovery tells clients what resources exist.
+- OpenAPI tells clients what fields those resources contain.
+- Objects store actual desired state.
+- `kubectl explain` reads schema information from the API Server.
+- `kubectl explain` first resolves the resource, then walks the field path.
+- Field paths are hierarchical because Kubernetes API objects are hierarchical.
+- CRDs provide their schema inside the CRD object.
+- API Server validates objects before storing them.
+- Controllers reconcile behavior; they do not define schemas.
+- `kubectl explain` is best understood as schema-tree traversal.
+- The schema tree is preserved because it mirrors real API composition.
+- `Deployment.spec.template` is a blueprint for future Pods.
+- `--recursive` is useful for exploration but can be noisy.
+- `api-resources` and `explain` solve different problems.
+
+---
+
 ## Current Learning Status
 
-Status: **In progress**
+Status: **Concept complete; hands-on pending**
 
 Completed:
 
@@ -513,32 +901,27 @@ Completed:
 - CRD schema registration model
 - API Server validation responsibility
 - `kubectl explain` mental model
+- resource resolution
 - schema traversal
+- practical field path navigation
 - why `kubectl explain` preserves the schema tree
+- why `kubectl explain` resolves one level at a time
 - API composition
 - why Deployment uses `spec.template.spec.containers`
 - why `template` is not called `pod`
+- `--recursive` concept and usage
+- difference between `kubectl explain` and `kubectl api-resources`
+- CRD explain behavior
+- CKA usage best practices
 
 Pending:
 
-- practical `kubectl explain` usage
-- `--recursive`
-- field navigation exercises
-- CRD explain behavior
-- hands-on lab
+- hands-on field navigation exercises
+- hands-on `--recursive` exercises
+- hands-on CRD explain behavior
 - intentional breakage
 - troubleshooting
 - final cheat sheet
-
----
-
-## CKA Tips
-
-- Use `kubectl explain` when you forget where a field belongs.
-- Think in field paths, not copied YAML snippets.
-- For workload controllers, container fields usually live under `spec.template.spec.containers`.
-- Use `kubectl explain` to avoid indentation and nesting mistakes.
-- Learn the object model so `kubectl explain` becomes a confirmation tool, not your only source of knowledge.
 
 ---
 
