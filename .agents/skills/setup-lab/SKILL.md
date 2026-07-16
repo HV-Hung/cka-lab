@@ -213,7 +213,9 @@ Complete the lab documentation:
    kubectl delete -f labs/{domain}/{topic}/manifests/
    ```
 
-3. Confirm with the user that the lab is complete.
+3. Update the root `README.md` to mark the lab as completed in the Learning Roadmap (change `[ ]` to `[x]`).
+
+4. Confirm with the user that the lab is complete.
 
 ---
 

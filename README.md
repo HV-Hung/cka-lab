@@ -30,7 +30,7 @@ make reset       # Shortcut: delete + recreate
 
 ### Phase 1 — Workloads
 
-* [ ] [Pods](labs/workloads/pods/)
+* [x] [Pods](labs/workloads/pods/)
 * [ ] [ReplicaSets](labs/workloads/replicasets/)
 * [ ] [Deployments](labs/workloads/deployments/)
 * [ ] [DaemonSets](labs/workloads/daemonsets/)
