@@ -125,16 +125,15 @@ Update the repository.
 
 Documentation should include:
 
-* Overview
-* Architecture
+* Objective
 * Key concepts
-* Implementation
-* Best practices
+* Implementation steps
+* Validation commands
 * Common mistakes
-* Troubleshooting
-* Interview notes
+* Troubleshooting (Break It scenario)
+* Lessons learned
 * CKA tips
-* References
+* Best practices
 
 ---
 
@@ -201,12 +200,11 @@ The goal is to develop production troubleshooting skills.
 
 # Repository Structure
 
-Every new topic should contribute to the following areas when appropriate:
+Every new topic should produce a self-contained lab in:
 
-* `docs/` — theory and best practices
-* `labs/` — reproducible hands-on exercises
-* `scenarios/` — troubleshooting exercises
-* `cheatsheets/` — concise reference material
+* `labs/{domain}/{topic}/` — hands-on lab with README and manifests
+
+All concept explanations, troubleshooting scenarios, and best practices belong inside the lab's `README.md`. A consolidated quick reference is maintained in `cheatsheet.md` at the repository root.
 
 ---
 

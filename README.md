@@ -1,96 +1,84 @@
-# Kubernetes Platform Lab
+# CKA Lab
 
-> A hands-on Kubernetes learning repository focused on **CKA preparation**, **production best practices**, and **Platform Engineering**.
+> Hands-on Kubernetes labs for **CKA exam preparation** and **production troubleshooting skills**.
 
 ## Overview
 
-This repository documents my journey to becoming a Kubernetes Platform Engineer. It combines theory, practical labs, troubleshooting scenarios, and operational best practices into a single knowledge base.
+This repository is a self-contained learning environment for mastering Kubernetes administration. Every topic follows a structured 7-step workflow: **Discuss → Design → Implement → Validate → Break It → Troubleshoot → Document**.
 
-The goal is not only to pass the Certified Kubernetes Administrator (CKA) exam, but also to develop the skills required to build, operate, and troubleshoot production Kubernetes clusters.
+The goal is deep understanding — not memorization.
 
 ---
 
-## Objectives
+## Quick Start
 
-* Prepare for the Certified Kubernetes Administrator (CKA) exam
-* Build a solid understanding of Kubernetes internals
-* Practice real-world cluster administration
-* Develop troubleshooting skills through hands-on scenarios
-* Document production best practices
-* Create a public portfolio demonstrating Kubernetes expertise
+```bash
+make up          # Create a Kind cluster (1 control-plane + 1 worker)
+make status      # Verify nodes are ready
+```
+
+Then open a new conversation and say: **"Set up the pods lab"** — the agent walks you through all 7 phases.
+
+```bash
+make down        # Delete the cluster when done
+make reset       # Shortcut: delete + recreate
+```
 
 ---
 
 ## Learning Roadmap
 
-### Phase 1 – Kubernetes Fundamentals
+### Phase 1 — Workloads
 
-* [ ] kubectl
-* [ ] Pods
-* [ ] ReplicaSets
-* [ ] Deployments
-* [ ] DaemonSets
-* [ ] StatefulSets
-* [ ] Jobs
-* [ ] CronJobs
+* [ ] [Pods](labs/workloads/pods/)
+* [ ] [ReplicaSets](labs/workloads/replicasets/)
+* [ ] [Deployments](labs/workloads/deployments/)
+* [ ] [DaemonSets](labs/workloads/daemonsets/)
+* [ ] [StatefulSets](labs/workloads/statefulsets/)
+* [ ] [Jobs](labs/workloads/jobs/)
+* [ ] [CronJobs](labs/workloads/cronjobs/)
 
-### Phase 2 – Networking
+### Phase 2 — Networking
 
-* [ ] Services
-* [ ] EndpointSlice
-* [ ] DNS
-* [ ] Ingress
-* [ ] Gateway API
-* [ ] NetworkPolicy
+* [ ] [Services](labs/networking/services/)
+* [ ] [DNS](labs/networking/dns/)
+* [ ] [Ingress](labs/networking/ingress/)
+* [ ] [Gateway API](labs/networking/gateway-api/)
+* [ ] [Network Policies](labs/networking/network-policies/)
 
-### Phase 3 – Storage
+### Phase 3 — Storage
 
-* [ ] Volumes
-* [ ] PersistentVolumes
-* [ ] PersistentVolumeClaims
-* [ ] StorageClasses
-* [ ] CSI Drivers
+* [ ] [Volumes](labs/storage/volumes/)
+* [ ] [Persistent Volumes](labs/storage/persistent-volumes/)
+* [ ] [Persistent Volume Claims](labs/storage/persistent-volume-claims/)
+* [ ] [Storage Classes](labs/storage/storage-classes/)
+* [ ] [CSI Drivers](labs/storage/csi-drivers/)
 
-### Phase 4 – Scheduling
+### Phase 4 — Scheduling
 
-* [ ] Node Selector
-* [ ] Node Affinity
-* [ ] Pod Affinity
-* [ ] Taints & Tolerations
-* [ ] Priority Classes
-* [ ] Resource Requests & Limits
+* [ ] [Node Selector](labs/scheduling/node-selector/)
+* [ ] [Node Affinity](labs/scheduling/node-affinity/)
+* [ ] [Pod Affinity](labs/scheduling/pod-affinity/)
+* [ ] [Taints & Tolerations](labs/scheduling/taints-tolerations/)
+* [ ] [Priority Classes](labs/scheduling/priority-classes/)
+* [ ] [Resource Requests & Limits](labs/scheduling/resource-requests-limits/)
 
-### Phase 5 – Security
+### Phase 5 — Security
 
-* [ ] Service Accounts
-* [ ] RBAC
-* [ ] Secrets
-* [ ] Security Context
-* [ ] Admission Controllers
+* [ ] [Service Accounts](labs/security/service-accounts/)
+* [ ] [RBAC](labs/security/rbac/)
+* [ ] [Secrets](labs/security/secrets/)
+* [ ] [Security Context](labs/security/security-context/)
+* [ ] [Admission Controllers](labs/security/admission-controllers/)
 
-### Phase 6 – Cluster Administration
+### Phase 6 — Cluster Administration
 
-* [ ] kubeadm
-* [ ] Cluster Upgrade
-* [ ] Certificate Management
-* [ ] etcd Backup
-* [ ] etcd Restore
-* [ ] Control Plane Components
-
-### Phase 7 – Troubleshooting
-
-* [ ] Pod Failures
-* [ ] Scheduling Issues
-* [ ] Networking Issues
-* [ ] DNS Issues
-* [ ] Storage Issues
-* [ ] Cluster Failures
-
-### Phase 8 – Mock Exams
-
-* [ ] Practice Lab #1
-* [ ] Practice Lab #2
-* [ ] Full Mock Exam
+* [ ] [kubeadm](labs/cluster-admin/kubeadm/)
+* [ ] [Cluster Upgrade](labs/cluster-admin/cluster-upgrade/)
+* [ ] [Certificate Management](labs/cluster-admin/certificate-management/)
+* [ ] [etcd Backup](labs/cluster-admin/etcd-backup/)
+* [ ] [etcd Restore](labs/cluster-admin/etcd-restore/)
+* [ ] [Control Plane Components](labs/cluster-admin/control-plane/)
 
 ---
 
@@ -100,123 +88,45 @@ The goal is not only to pass the Certified Kubernetes Administrator (CKA) exam, 
 .
 ├── README.md
 ├── AGENTS.md
+├── Makefile                    # Delegates cluster commands to cluster/Makefile
+├── cheatsheet.md               # Consolidated CKA quick reference
 │
-├── docs/
-│   ├── architecture/
-│   ├── kubectl/
-│   ├── workloads/
-│   ├── networking/
-│   ├── scheduling/
-│   ├── storage/
-│   ├── security/
-│   ├── cluster-administration/
-│   └── troubleshooting/
+├── cluster/                    # Cluster configuration & lifecycle management
+│   ├── kind-config.yaml        # 1 control-plane, 1 worker node configuration
+│   └── Makefile                # CLI wrapper for up, down, status, reset
 │
-├── labs/
-│
-├── scenarios/
-│
-├── cheatsheets/
-│
-├── scripts/
-│
-└── assets/
+└── labs/                       # CKA domain-grouped hands-on labs
+    ├── README.md               # Directory index and TOC
+    ├── workloads/              # Pods, Deployments, DaemonSets, StatefulSets, Jobs...
+    ├── networking/             # Services, Ingress, DNS, NetworkPolicies...
+    ├── storage/                # Volumes, PV/PVCs, StorageClasses, CSI...
+    ├── scheduling/             # NodeAffinity, Taints/Tolerations, Resources...
+    ├── security/               # ServiceAccounts, RBAC, Secrets, Contexts...
+    └── cluster-admin/          # Kubeadm, Upgrades, Certificates, etcd backup...
 ```
 
 ---
 
-## Learning Workflow
+## Lab Structure
 
-Each topic follows the same learning process:
+Every lab follows a consistent structure:
 
-1. Learn the concept
-2. Understand how it works internally
-3. Build the smallest working example
-4. Experiment with different configurations
-5. Break it intentionally
-6. Troubleshoot the problem
-7. Document the findings
-8. Summarize best practices
+* **Objective** — What you will learn
+* **Prerequisites** — Cluster state and dependencies
+* **Key Concepts** — Brief theory recap
+* **Steps** — Manifests and commands, applied incrementally
+* **Validation** — Commands and expected output to verify success
+* **Cleanup** — How to remove all lab resources
+* **Lessons Learned** — Key takeaways, CKA tips, and common mistakes
 
----
+Each lab includes a **Break It** scenario that introduces a realistic failure for troubleshooting practice.
 
-## Documentation Standards
-
-Every documentation page follows a consistent structure:
-
-* Overview
-* Architecture
-* Key Concepts
-* Hands-on Examples
-* Best Practices
-* Common Mistakes
-* Troubleshooting
-* Interview Notes
-* CKA Tips
-* References
-
----
-
-## Hands-on Labs
-
-Every lab includes:
-
-* Objective
-* Prerequisites
-* Deployment Steps
-* Validation
-* Cleanup
-* Lessons Learned
-
-Labs are designed to be reproducible from scratch.
-
----
-
-## Troubleshooting Scenarios
-
-Each scenario simulates a real production issue.
-
-Topics include:
-
-* CrashLoopBackOff
-* ImagePullBackOff
-* Pending Pods
-* Failed Scheduling
-* Service Discovery Issues
-* NetworkPolicy Misconfiguration
-* DNS Failures
-* Storage Problems
-* Certificate Issues
-* etcd Recovery
-
-The focus is on identifying symptoms, investigating the root cause, and applying the correct solution.
-
----
-
-## Cheat Sheets
-
-The `cheatsheets/` directory contains concise references for:
-
-* kubectl commands
-* YAML snippets
-* Debugging commands
-* Common workflows
-* Exam shortcuts
-
-These notes are intended for quick review rather than learning new concepts.
+Quick reference: [`cheatsheet.md`](cheatsheet.md)
 
 ---
 
 ## References
 
-* Kubernetes Official Documentation
-* CKA Curriculum
-* Killer.sh Practice Environment
-* Kubernetes Enhancement Proposals (KEPs)
-* CNCF Projects
-
----
-
-## Progress
-
-This repository is actively maintained as I continue my Kubernetes learning journey. The roadmap and checklist will be updated as new topics, labs, and troubleshooting scenarios are completed.
+* [Kubernetes Official Documentation](https://kubernetes.io/docs/)
+* [CKA Curriculum](https://github.com/cncf/curriculum)
+* [Killer.sh Practice Environment](https://killer.sh/)
